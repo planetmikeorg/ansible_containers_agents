@@ -1,0 +1,23 @@
+---
+# Directory configuration
+promtail:
+  image: docker.io/grafana/promtail
+  config: "{{ directories_config }}/promtail/etc"
+  data: "{{ directories_data }}/promtail/data" 
+  owner: "nobody:nobody"
+node_exporter:
+  image: quay.io/prometheus/node-exporter:latest
+  container_name: node_exporter
+
+directories_config: /u01
+directories_data: /u02
+directories:
+  - path: "{{ directories_config }}/promtail/etc"
+    owner: "{{ promtail.owner }}"
+  - path: "{{ directories_data }}/promtail/data"
+    owner: "{{ promtail.owner }}"
+
+
+agents_firewall_allow_services: []
+  
+agents_firewall_allow_ports: []

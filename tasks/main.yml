@@ -1,0 +1,66 @@
+---
+- name: Check required directories
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner.split(':')[0] }}"
+    group: "{{ item.owner.split(':')[1] }}"    
+    mode: '0774'
+  loop: "{{ directories }}"
+
+- name: Promtail Configuration
+  template:
+    src: promtail/config.yml
+    dest: "{{ promtail.config }}/config.yml"
+    owner: "{{ promtail.owner.split(':')[0] }}"
+    group: "{{ promtail.owner.split(':')[1] }}"    
+    mode: '0774'
+
+- name: Promtail image
+  containers.podman.podman_image:
+    name: "{{ promtail.image }}"
+
+- name: Container | Promtail
+  become: true
+  become_user: root
+  containers.podman.podman_container:
+    name: "promtail"
+    image: "{{ promtail.image }}"
+    state: started
+    log_driver: journald
+    volumes:
+      - "/var/log:/var/log:ro"
+      - "/etc/machine-id:/etc/machine-id"
+      - "{{ promtail.config }}:/etc/promtail:rw"
+    command: "-config.file=/etc/promtail/config.yml"
+    recreate: true
+    detach: true
+    rm: true
+
+# - name: Node Exporter Configuration
+#   template:
+#     src: node_exporter/config.yml
+#     dest: "{{ node_exporter.config }}/config.yml"
+#     owner: "{{ item.owner.split(':')[0] }}"
+#     group: "{{ item.owner.split(':')[1] }}"    
+#     mode: '0774'
+# - name: Node Exporter image
+#   containers.podman.podman_image:
+#     name: "{{ node_exporter.image }}"
+
+- name: Container | Node Exporter
+  become: true
+  become_user: root
+  containers.podman.podman_container:
+    name: "node_exporter"
+    image: "{{ node_exporter.image }}"
+    state: started
+    log_driver: journald
+    ports: 9100:9100
+    volumes:
+      - '/:/host:ro,rslave'
+    command: "--path.rootfs=/host"
+    recreate: true
+    detach: true
+    rm: true
+
